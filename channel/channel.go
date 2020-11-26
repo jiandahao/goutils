@@ -1,18 +1,9 @@
 package channel
 
 import (
-	"encoding/json"
 	"sync"
 	"sync/atomic"
 )
-
-func ToJSONString(data interface{}) string {
-	d, err := json.Marshal(data)
-	if err != nil {
-		return err.Error()
-	}
-	return string(d)
-}
 
 // SafeChannel a safe channel that could prevent sending on closed channel
 type SafeChannel struct {
