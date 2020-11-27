@@ -10,10 +10,12 @@ import (
 func main() {
 	wg := waitgroup.Wrapper{}
 	//m := sync.Mutex{}
-	c := channel.NewSafeChannel(0)
+	c := channel.NewSafeChannel(10)
 	wg.Wrap(func() {
 		for i := 0; i < 100; i++ {
-			c.Push(i)
+			if ok := c.Push(i); !ok {
+				return
+			}
 		}
 	})
 
@@ -29,6 +31,7 @@ func main() {
 					c.Push(n.(int) + 1)
 				})
 			}
+			time.Sleep(time.Millisecond * 300)
 		}
 	})
 
