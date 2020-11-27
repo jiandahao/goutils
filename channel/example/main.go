@@ -7,10 +7,8 @@ import (
 	"github.com/jiandahao/goutils/waitgroup"
 )
 
-func main() {
+func testChannel(c channel.Channel) {
 	wg := waitgroup.Wrapper{}
-	//m := sync.Mutex{}
-	c := channel.NewSafeChannel(10)
 	wg.Wrap(func() {
 		for i := 0; i < 100; i++ {
 			if ok := c.Push(i); !ok {
@@ -38,4 +36,9 @@ func main() {
 	time.Sleep(time.Second * 2)
 	c.Close()
 	wg.Wait()
+}
+
+func main() {
+	testChannel(channel.NewSafeChannel(10))
+	testChannel(channel.NewRevocerableChannel(10))
 }
