@@ -17,6 +17,10 @@ import (
 // Note that it is only necessary to close a channel if the receiver is looking for a close. Closing the channel is
 // a control signal on the channel indicating that no more data follows.
 // [Design Question: Channel Closing](https://groups.google.com/g/golang-nuts/c/pZwdYRGxCIk/m/qpbHxRRPJdUJ)
+//
+// Ref:
+// 1. [How to Gracefully Close Channels? (How to gracefully close the Go channel?)](https://topic.alibabacloud.com/a/how-to-gracefully-close-channels-how-to-gracefully-close-the-go-channel_1_38_30916423.html)
+// 2. [(译)如何优雅的关闭Go Channel](https://www.ulovecode.com/2020/07/14/Go/Golang%E8%AF%91%E6%96%87/%E5%A6%82%E4%BD%95%E4%BC%98%E9%9B%85%E5%85%B3%E9%97%ADGo-Channel/)
 
 // SafeChannel a safe channel that could prevent sending on closed channel
 type SafeChannel struct {
