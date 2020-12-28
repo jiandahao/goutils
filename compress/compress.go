@@ -10,9 +10,9 @@ func Compress(from io.Reader, to io.Writer) error {
 	writer := gzip.NewWriter(to)
 	defer writer.Close() // 一定要Close
 
-	buf := make([]byte, 100)
+	buf := make([]byte, 1024)
 	for {
-		_, err := from.Read(buf)
+		count, err := from.Read(buf)
 		if err == io.EOF {
 			break
 		}
@@ -20,7 +20,10 @@ func Compress(from io.Reader, to io.Writer) error {
 			return err
 		}
 
-		writer.Write(buf)
+		currentBytes := buf[:count]
+		if _, err := writer.Write(currentBytes); err != nil {
+			return err
+		}
 		writer.Flush() // 手动flush，否则得不到数据
 	}
 
@@ -37,13 +40,17 @@ func Decompress(from io.Reader, to io.Writer) error {
 
 	buf := make([]byte, 1024)
 	for {
-		_, err := reader.Read(buf)
+		count, err := reader.Read(buf)
 		if err == io.EOF {
 			return nil
 		}
 		if err != nil {
 			return err
 		}
-		to.Write(buf)
+
+		currentBytes := buf[:count]
+		if _, err := to.Write(currentBytes); err != nil {
+			return err
+		}
 	}
 }
