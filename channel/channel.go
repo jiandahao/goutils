@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 // The Channel Closing Principle
@@ -28,6 +29,7 @@ type Channel interface {
 	Push(n interface{}) bool
 	Pop() (interface{}, bool)
 	Close()
+	CloseAndWait()
 }
 
 // SafeChannel a safe channel that could prevent sending on closed channel
@@ -36,6 +38,7 @@ type SafeChannel struct {
 	isClosed int32 // 0: opened, 1: closed
 	ctx      context.Context
 	cancle   context.CancelFunc
+	counter  int64
 }
 
 // NewSafeChannel new a channel
@@ -67,6 +70,7 @@ func (sc *SafeChannel) Push(n interface{}) bool {
 		case <-sc.ctx.Done():
 			return false
 		case sc.channel <- n:
+			atomic.AddInt64(&sc.counter, 1)
 			return true
 		}
 	}
@@ -75,6 +79,9 @@ func (sc *SafeChannel) Push(n interface{}) bool {
 // Pop pop value from channel
 func (sc *SafeChannel) Pop() (interface{}, bool) {
 	n, ok := <-sc.channel
+	if ok {
+		atomic.AddInt64(&sc.counter, -1)
+	}
 	return n, ok
 }
 
@@ -86,10 +93,24 @@ func (sc *SafeChannel) Close() {
 	}
 }
 
+// CloseAndWait close the channel, and wait until all data in the channel have been poped.
+func (sc *SafeChannel) CloseAndWait() {
+	if !atomic.CompareAndSwapInt32(&sc.isClosed, 0, 1) {
+		return
+	}
+	sc.cancle()
+	for atomic.LoadInt64(&sc.counter) > 0 {
+		time.Sleep(time.Millisecond * 100)
+	}
+	close(sc.channel)
+}
+
 // RecoverableChannel recoverable channel
 type RecoverableChannel struct {
 	channel   chan interface{}
 	closeOnce sync.Once
+	counter   int64
+	isClosed  int32 // 0 - opened, 1 - closed / closing
 }
 
 // NewRevocerableChannel new a recoverable channel
@@ -110,15 +131,26 @@ func (rc *RecoverableChannel) Push(n interface{}) (ok bool) {
 	defer func() {
 		if r := recover(); r != nil {
 			ok = false
+			atomic.CompareAndSwapInt32(&rc.isClosed, 0, 1)
+			return
 		}
 	}()
+
+	if atomic.LoadInt32(&rc.isClosed) == 1 {
+		return false
+	}
+
 	rc.channel <- n
+	atomic.AddInt64(&rc.counter, 1)
 	return
 }
 
 // Pop pop value from channel
 func (rc *RecoverableChannel) Pop() (interface{}, bool) {
 	n, ok := <-rc.channel
+	if ok {
+		atomic.AddInt64(&rc.counter, -1)
+	}
 	return n, ok
 }
 
@@ -127,4 +159,17 @@ func (rc *RecoverableChannel) Close() {
 	rc.closeOnce.Do(func() {
 		close(rc.channel)
 	})
+}
+
+// CloseAndWait close the channel, and wait until all data in the channel have been poped.
+func (rc *RecoverableChannel) CloseAndWait() {
+	for !atomic.CompareAndSwapInt32(&rc.isClosed, 0, 1) {
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	for atomic.LoadInt64(&rc.counter) > 0 {
+		time.Sleep(time.Millisecond * 100)
+	}
+
+	rc.Close()
 }
