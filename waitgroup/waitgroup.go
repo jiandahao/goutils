@@ -1,6 +1,8 @@
 package waitgroup
 
 import (
+	"fmt"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 )
@@ -37,5 +39,20 @@ func (w *Wrapper) Wrap(cb func()) {
 	go func() {
 		cb()
 		w.Done()
+	}()
+}
+
+// RecoverableWrap recoverable wrap
+func (w *Wrapper) RecoverableWrap(cb func()) {
+	w.Add(1)
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Println("recover from panic:", r)
+				debug.PrintStack()
+			}
+			w.Done()
+		}()
+		cb()
 	}()
 }
