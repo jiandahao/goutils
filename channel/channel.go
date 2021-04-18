@@ -26,10 +26,11 @@ import (
 
 // Channel describes a channel
 type Channel interface {
-	Push(n interface{}) bool
-	Pop() (interface{}, bool)
-	Close()
-	CloseAndWait()
+	Push(n interface{}) bool  // push value into channel.
+	Pop() (interface{}, bool) // pop value from channel.
+	Close()                   // close channel immediately without waiting.
+	CloseAndWait()            // close the channel and wait all element inside channle to be consumed by consumers.
+	Count() int64             // return the current number of elements inside channel.
 }
 
 // SafeChannel a safe channel that could prevent sending on closed channel
@@ -105,6 +106,11 @@ func (sc *SafeChannel) CloseAndWait() {
 	close(sc.channel)
 }
 
+// Count returns current number of elements inside channel.
+func (sc *SafeChannel) Count() int64 {
+	return atomic.LoadInt64(&sc.counter)
+}
+
 // RecoverableChannel recoverable channel
 type RecoverableChannel struct {
 	channel   chan interface{}
@@ -172,4 +178,9 @@ func (rc *RecoverableChannel) CloseAndWait() {
 	}
 
 	rc.Close()
+}
+
+// Count returns current number of elements inside channel.
+func (rc *RecoverableChannel) Count() int64 {
+	return atomic.LoadInt64(&rc.counter)
 }
