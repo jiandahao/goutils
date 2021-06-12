@@ -41,6 +41,11 @@ type (
 	Array = []interface{}
 )
 
+var (
+	// Nil represents a nil value
+	Nil = NewValue(nil)
+)
+
 // NewValue new value
 func NewValue(val interface{}) *Value {
 	if val == nil {
@@ -230,14 +235,14 @@ func (v Value) Get(path string) (*Value, error) {
 	cur := &v
 	for _, key := range keys {
 		if cur.typ != TypeMap {
-			return nil, errors.Errorf("path %s is not available", path)
+			return Nil, errors.Errorf("path %s is not available", path)
 		}
 
 		mdata := cur.val.Interface().(Map)
 
 		keyname, indexes, err := parseKey(key)
 		if err != nil {
-			return nil, err
+			return Nil, err
 		}
 
 		val := mdata[keyname]
@@ -247,7 +252,7 @@ func (v Value) Get(path string) (*Value, error) {
 		for _, index := range indexes {
 			array, ok := cur.val.Interface().(Array)
 			if !ok {
-				return nil, fmt.Errorf("invalid path: %s is not an array", curPath)
+				return Nil, fmt.Errorf("invalid path: %s is not an array", curPath)
 			}
 
 			elem := array[index]
