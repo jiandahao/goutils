@@ -66,8 +66,6 @@ func ReadLines(filePath string) (<-chan string, error) {
 			lines <- text
 		}
 
-		lines <- "" // wait and make sure all lines have been consumed
-
 		file.Close()
 		close(lines)
 	}()
