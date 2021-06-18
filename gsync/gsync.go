@@ -73,11 +73,5 @@ func (s *Slice) Delete(idx int) {
 		return
 	}
 
-	temp := []interface{}{}
-	if idx == 0 {
-		temp = s.data[idx+1:]
-	} else {
-		temp = append(s.data[:idx], s.data[idx+1:]...)
-	}
-	s.data = temp
+	s.data = append(s.data[:idx], s.data[idx+1:]...)
 }
