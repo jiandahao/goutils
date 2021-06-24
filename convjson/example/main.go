@@ -50,4 +50,8 @@ func main() {
 	fmt.Println("city", city.MustString())
 	fmt.Println("hobbies", hobbies.MustString())
 	fmt.Println("math scores", mathScore.MustInt())
+
+	// get with self-defined delimiter
+	city, _ = val.Get("extras[0]/city", convjson.WithDelimiter("/"))
+	fmt.Println("city", city.MustString())
 }

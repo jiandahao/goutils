@@ -29,7 +29,7 @@ type Response struct {
 	*http.Response
 	Request *RequestOptions
 	Body    []byte
-	err     error
+	err     error // deferred error for easy chaining
 }
 
 // Error returns the error
@@ -83,9 +83,41 @@ type Client struct {
 	Logger *zap.Logger
 }
 
-// Do sends an HTTP request
-func (c *Client) Do(opts *RequestOptions) (resp *Response) {
-	return c.do(opts)
+// ResponseInterceptor intercepts the response. ResponseInterceptor counld be specified as a
+// customize error handler. Errors returned from ResponseInterceptor will be set into Response.err field.
+type ResponseInterceptor func(resp *Response) error
+
+// Do sends an HTTP request based on RequestOptions and then delegates the response to all specified iterceptors.
+func (c *Client) Do(opts *RequestOptions, interceptors ...ResponseInterceptor) (resp *Response) {
+	defer func() {
+		if r := recover(); r != nil {
+			resp.err = fmt.Errorf("recover from panic: %v", r)
+		}
+
+		if c.Logger == nil {
+			return
+		}
+
+		if resp.err != nil {
+			c.Logger.Error("handle request", zap.Any("options", opts), zap.Error(resp.err))
+			return
+		}
+
+		c.Logger.Info("handle request", zap.Any("options", opts))
+	}()
+
+	resp = c.do(opts)
+	if resp.err != nil {
+		return
+	}
+
+	for _, interceptor := range interceptors {
+		if err := interceptor(resp); err != nil {
+			resp.err = err
+			break
+		}
+	}
+	return
 }
 
 func (c *Client) do(opts *RequestOptions) (resp *Response) {
@@ -95,22 +127,7 @@ func (c *Client) do(opts *RequestOptions) (resp *Response) {
 	}
 
 	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("recover from panic: %v", r)
-		}
-
 		resp.err = err
-
-		if c.Logger == nil {
-			return
-		}
-
-		if err != nil {
-			c.Logger.Error("handle request", zap.Any("options", opts), zap.Error(err))
-			return
-		}
-
-		c.Logger.Info("handle request", zap.Any("options", opts))
 	}()
 
 	if opts == nil {

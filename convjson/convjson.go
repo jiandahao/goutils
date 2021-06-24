@@ -225,13 +225,12 @@ func (v Value) IsNil() bool {
 	return v.typ == TypeNil
 }
 
-const (
-	delimiter = "."
-)
-
 // Get get value by path
-func (v Value) Get(path string) (*Value, error) {
-	keys := strings.Split(path, delimiter)
+func (v Value) Get(path string, options ...GetOptionFunc) (*Value, error) {
+	opt := newGetOption()
+	opt.load(options...)
+
+	keys := strings.Split(path, opt.delimiter)
 	cur := &v
 	for _, key := range keys {
 		if cur.typ != TypeMap {
