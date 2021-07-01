@@ -27,9 +27,11 @@ func SetQueueCapacity(capacity int) PriorityQueueOption {
 }
 
 // NewPriorityQueue new a priority queue.
-func NewPriorityQueue(compare compareFunc, opts ...PriorityQueueOption) *PriorityQueue {
+//
+// less should return true if x is considered to go before y.
+func NewPriorityQueue(less func(x interface{}, y interface{}) bool, opts ...PriorityQueueOption) *PriorityQueue {
 	pq := &PriorityQueue{
-		s:        newInnerSlice(compare),
+		s:        newInnerSlice(less),
 		capacity: -1, // infinite capacity by default
 	}
 
