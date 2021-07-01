@@ -7,6 +7,5 @@ require (
 	github.com/jinzhu/gorm v1.9.16
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.10.0
-	github.com/samuel/go-zookeeper v0.0.0-20201211165307-7117e9ea2414
 	go.uber.org/zap v1.16.0
 )
