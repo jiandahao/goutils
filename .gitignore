@@ -17,3 +17,7 @@
 go.sum
 
 bin
+
+.bin
+
+.vscode
