@@ -1,4 +1,4 @@
-package container
+package priorityqueue
 
 import (
 	"container/heap"
@@ -14,22 +14,22 @@ type PriorityQueue struct {
 	sync.RWMutex
 }
 
-// PriorityQueueOption configs how to initialize a priority queue
-type PriorityQueueOption func(pq *PriorityQueue)
+// Option configs how to initialize a priority queue
+type Option func(pq *PriorityQueue)
 
-// SetQueueCapacity sets the capacity of the queue.
+// SetCapacity sets the capacity of the queue.
 //
 // capacity < 0 represents Infinite capacity.
-func SetQueueCapacity(capacity int) PriorityQueueOption {
+func SetCapacity(capacity int) Option {
 	return func(pq *PriorityQueue) {
 		pq.capacity = capacity
 	}
 }
 
-// NewPriorityQueue new a priority queue.
+// New new a priority queue.
 //
-// less should return true if x is considered to go before y.
-func NewPriorityQueue(less func(x interface{}, y interface{}) bool, opts ...PriorityQueueOption) *PriorityQueue {
+// less is used to compare two elements, it should return true if x is considered to go before y.
+func New(less func(x interface{}, y interface{}) bool, opts ...Option) *PriorityQueue {
 	pq := &PriorityQueue{
 		s:        newInnerSlice(less),
 		capacity: -1, // infinite capacity by default
@@ -49,7 +49,7 @@ func (pq *PriorityQueue) Push(x interface{}) {
 
 	heap.Push(pq.s, x)
 	if pq.capacity > 0 && pq.s.Len() > pq.capacity {
-		// removes and returns the minimum element (according to compareFunc) from the heap,
+		// removes and returns the element considered as minimum one from the heap,
 		// if the current size of the queue exceeds the maximum capacity.
 		heap.Pop(pq.s)
 	}
@@ -63,7 +63,7 @@ func (pq *PriorityQueue) Pop() interface{} {
 	return heap.Pop(pq.s)
 }
 
-// Top accesses the top element (minimum element (according to compareFunc)) from the heap.
+// Top accesses the top element (considered as minimum element) from the heap.
 func (pq *PriorityQueue) Top() interface{} {
 	pq.RLock()
 	defer pq.RUnlock()
@@ -82,18 +82,18 @@ func (pq *PriorityQueue) Len() int {
 	return pq.s.Len()
 }
 
-// compareFunc represents a method using to compare two elements, and it
+// lessFunc represents a method using to compare two elements, and it
 // should return true if x is considered to go before y.
-type compareFunc func(x interface{}, y interface{}) bool
+type lessFunc func(x interface{}, y interface{}) bool
 
 type innerSlice struct {
-	data    []interface{}
-	compare compareFunc
+	data []interface{}
+	less lessFunc
 }
 
-func newInnerSlice(compare compareFunc) *innerSlice {
+func newInnerSlice(less lessFunc) *innerSlice {
 	return &innerSlice{
-		compare: compare,
+		less: less,
 	}
 }
 
@@ -110,7 +110,7 @@ func (s *innerSlice) Len() int {
 // Sort may place equal elements in any order in the final result,
 // while Stable preserves the original input order of equal elements.
 func (s *innerSlice) Less(i int, j int) bool {
-	return s.compare(s.data[i], s.data[j])
+	return s.less(s.data[i], s.data[j])
 }
 
 // Swap swaps the elements with indexes i and j.

@@ -3,14 +3,14 @@ package main
 import (
 	"fmt"
 
-	"github.com/jiandahao/goutils/container"
+	"github.com/jiandahao/goutils/container/priorityqueue"
 )
 
 func main() {
 	// min heap, could be used to solve Top-K problem
-	minHeap := container.NewPriorityQueue(func(x, y interface{}) bool {
+	minHeap := priorityqueue.New(func(x, y interface{}) bool {
 		return x.(int) < y.(int)
-	}, container.SetQueueCapacity(10))
+	}, priorityqueue.SetCapacity(10))
 
 	for i := 0; i < 50; i++ {
 		minHeap.Push(i)

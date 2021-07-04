@@ -1,4 +1,4 @@
-package container
+package priorityqueue
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 
 func TestPriorityQueue(t *testing.T) {
 	// min heap
-	queue := NewPriorityQueue(func(x, y interface{}) bool {
+	queue := New(func(x, y interface{}) bool {
 		return x.(int) < y.(int)
 	})
 
@@ -28,9 +28,9 @@ func TestPriorityQueue(t *testing.T) {
 
 func TestPriorityQueue_SizeLimit(t *testing.T) {
 	// max heap
-	queue := NewPriorityQueue(func(x, y interface{}) bool {
+	queue := New(func(x, y interface{}) bool {
 		return x.(int) < y.(int)
-	}, SetQueueCapacity(10))
+	}, SetCapacity(10))
 
 	for i := 0; i < 50; i++ {
 		queue.Push(i)
@@ -50,7 +50,7 @@ func TestPriorityQueue_SizeLimit(t *testing.T) {
 }
 
 func BenchmarkPriorityQueue_Push_WithoutCapcityLimit(b *testing.B) {
-	queue := NewPriorityQueue(func(x, y interface{}) bool {
+	queue := New(func(x, y interface{}) bool {
 		return x.(int) < y.(int)
 	})
 	for i := 0; i < b.N; i++ {
@@ -59,9 +59,9 @@ func BenchmarkPriorityQueue_Push_WithoutCapcityLimit(b *testing.B) {
 }
 
 func BenchmarkPriorityQueue_Push_WithCapcityLimit(b *testing.B) {
-	queue := NewPriorityQueue(func(x, y interface{}) bool {
+	queue := New(func(x, y interface{}) bool {
 		return x.(int) < y.(int)
-	}, SetQueueCapacity(10))
+	}, SetCapacity(10))
 	for i := 0; i < b.N; i++ {
 		queue.Push(i)
 	}
