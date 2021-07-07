@@ -151,9 +151,6 @@ func (c *Client) do(opts *RequestOptions) (resp *Response) {
 	}
 
 	defer res.Body.Close()
-	if err != nil {
-		return
-	}
 
 	// make response
 	resp.Response = res
