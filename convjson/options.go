@@ -1,28 +1,28 @@
 package convjson
 
-// GetOption configures how we get the value.
-type GetOption struct {
+// Option configures how we get the value.
+type Option struct {
 	delimiter string
 }
 
-func newGetOption() *GetOption {
-	return &GetOption{
+func newOption() *Option {
+	return &Option{
 		delimiter: ".",
 	}
 }
 
-func (opt *GetOption) load(options ...GetOptionFunc) {
+func (opt *Option) load(options ...OptionFunc) {
 	for _, o := range options {
 		o(opt)
 	}
 }
 
-// GetOptionFunc option func
-type GetOptionFunc func(opt *GetOption)
+// OptionFunc option func
+type OptionFunc func(opt *Option)
 
 // WithDelimiter let you set the delimiter, this determines how to split json path.
-func WithDelimiter(d string) GetOptionFunc {
-	return func(opt *GetOption) {
+func WithDelimiter(d string) OptionFunc {
+	return func(opt *Option) {
 		opt.delimiter = d
 	}
 }
