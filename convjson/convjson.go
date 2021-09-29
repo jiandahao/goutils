@@ -73,7 +73,7 @@ func NewValue(val interface{}) *Value {
 		if v.Type() == reflect.TypeOf(Value{}) {
 			return val.(*Value)
 		}
-		return newValue(TypeStruct, v)
+		return newValue(TypeMap, reflect.ValueOf(convert2Map(val)))
 	default:
 		return newValue(TypeUnsupported, reflect.Value{})
 	}
@@ -84,6 +84,20 @@ func newValue(valueType ValueType, value reflect.Value) *Value {
 		typ: valueType,
 		val: value,
 	}
+}
+
+func convert2Map(val interface{}) map[string]interface{} {
+	data, err := json.Marshal(val)
+	if err != nil {
+		panic(err)
+	}
+
+	res := make(map[string]interface{})
+	if err := json.Unmarshal(data, &res); err != nil {
+		panic(err)
+	}
+
+	return res
 }
 
 // String returns value as string
@@ -225,9 +239,46 @@ func (v Value) IsNil() bool {
 	return v.typ == TypeNil
 }
 
-// Get get value by path
-func (v Value) Get(path string, options ...GetOptionFunc) (*Value, error) {
-	opt := newGetOption()
+// Set binds value to path.
+func (v *Value) Set(path string, value interface{}, options ...OptionFunc) error {
+	if path == "" {
+		temp := NewValue(value)
+		v.typ = temp.typ
+		v.val = temp.val
+		return nil
+	}
+
+	// TODO: check whether it's a valid type
+	opt := newOption()
+	opt.load(options...)
+
+	keys := strings.Split(path, opt.delimiter)
+	key := keys[0]
+	if v.typ != TypeMap {
+		return errors.Errorf("path %s is not available", path)
+	}
+
+	mdata := v.val.Interface().(Map)
+
+	// TODO: support set array element
+	keyname, _, err := parseKey(key)
+	if err != nil {
+		return err
+	}
+
+	val := NewValue(mdata[keyname])
+	val.Set(strings.Join(keys[1:], "."), value)
+
+	mdata[keyname] = val
+
+	v.val = reflect.ValueOf(mdata)
+
+	return nil
+}
+
+// Get get value by path.
+func (v Value) Get(path string, options ...OptionFunc) (*Value, error) {
+	opt := newOption()
 	opt.load(options...)
 
 	keys := strings.Split(path, opt.delimiter)
@@ -296,4 +347,9 @@ func parseKey(key string) (keyname string, indexes []int, err error) {
 		numStr = numStr + string(key[i])
 	}
 	return
+}
+
+// MarshalJSON implements Marshaler interface.
+func (v Value) MarshalJSON() ([]byte, error) {
+	return json.Marshal(v.val.Interface())
 }
