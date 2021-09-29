@@ -225,6 +225,11 @@ func (v Value) MustBool() bool {
 	return val
 }
 
+// RawValue returns a reflect.Value
+func (v Value) RawValue() reflect.Value {
+	return v.val
+}
+
 // JSON json string
 func (v Value) JSON() (string, error) {
 	if v.typ == TypeStruct || v.typ == TypeMap || v.typ == TypeArray {
@@ -315,7 +320,8 @@ func (v Value) Get(path string, options ...OptionFunc) (*Value, error) {
 	return cur, nil
 }
 
-var keyPattern = regexp.MustCompile(`^[a-zA-Z_@][a-zA-Z0-9-_.]{0,}(\[[0-9]+\]){0,}$`)
+//var keyPattern = regexp.MustCompile(`^[$/a-zA-Z_@0-9][/a-zA-Z0-9-_.]{0,}(\[[0-9]+\]){0,}$`)
+var keyPattern = regexp.MustCompile(`.*`)
 
 // parseKey parse given key to obtain true keyname and indexes if the key represents
 // an array. For instance, parsing key 'a[1][2]' will return keyname 'a' and indexes '[]int{1, 2}'
