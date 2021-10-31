@@ -22,6 +22,15 @@ type RequestOptions struct {
 	Header  http.Header `json:"header,omitempty"`
 	Query   url.Values  `json:"query,omitempty"`
 	Request interface{} `json:"request,omitempty"`
+
+	aborted       bool
+	abortedReason string
+}
+
+// Abort abort current request.
+func (opts *RequestOptions) Abort(reason string) {
+	opts.aborted = true
+	opts.abortedReason = reason
 }
 
 // Response response
@@ -72,23 +81,35 @@ var DefaultClient = newDefaultClient()
 
 func newDefaultClient() *Client {
 	return &Client{
-		Client: http.DefaultClient,
-		Logger: nil,
+		httpClient: http.DefaultClient,
+		Logger:     nil,
 	}
 }
 
 // Client client
 type Client struct {
-	*http.Client
-	Logger *zap.Logger
+	httpClient *http.Client
+	Logger     *zap.Logger
+
+	requestInterceptors  []RequestInterceptor
+	responseInterceptors []ResponseInterceptor
 }
 
-// ResponseInterceptor intercepts the response. ResponseInterceptor counld be specified as a
-// customize error handler. Errors returned from ResponseInterceptor will be set into Response.err field.
-type ResponseInterceptor func(resp *Response) error
+// NewClient creates a new client object.
+func NewClient(options ...ClientOption) *Client {
+	cc := &Client{
+		httpClient: &http.Client{},
+	}
 
-// Do sends an HTTP request based on RequestOptions and then delegates the response to all specified iterceptors.
-func (c *Client) Do(opts *RequestOptions, interceptors ...ResponseInterceptor) (resp *Response) {
+	for _, option := range options {
+		option(cc)
+	}
+
+	return cc
+}
+
+// Do sends an HTTP request based on RequestOptions.
+func (c *Client) Do(opts *RequestOptions) (resp *Response) {
 	defer func() {
 		if r := recover(); r != nil {
 			resp.err = fmt.Errorf("recover from panic: %v", r)
@@ -106,17 +127,27 @@ func (c *Client) Do(opts *RequestOptions, interceptors ...ResponseInterceptor) (
 		c.Logger.Info("handle request", zap.Any("options", opts))
 	}()
 
+	for _, interceptor := range c.requestInterceptors {
+		interceptor(opts)
+		if opts.aborted {
+			return &Response{
+				err: fmt.Errorf("request aborted, reason: %s", opts.abortedReason),
+			}
+		}
+	}
+
 	resp = c.do(opts)
 	if resp.err != nil {
 		return
 	}
 
-	for _, interceptor := range interceptors {
+	for _, interceptor := range c.responseInterceptors {
 		if err := interceptor(resp); err != nil {
 			resp.err = err
-			break
+			return resp
 		}
 	}
+
 	return
 }
 
@@ -145,7 +176,7 @@ func (c *Client) do(opts *RequestOptions) (resp *Response) {
 	}
 
 	var res *http.Response
-	res, err = c.Client.Do(req)
+	res, err = c.httpClient.Do(req)
 	if err != nil {
 		return
 	}
