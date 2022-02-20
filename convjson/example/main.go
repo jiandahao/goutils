@@ -59,4 +59,12 @@ func main() {
 	mathScore, _ = val.Get("scores.math")
 	fmt.Println("math scores", mathScore.MustInt())
 
+	fmt.Println("range......")
+	val.Range(func(key string, value *convjson.Value) bool {
+		fmt.Println(key, value.MustString())
+		return true
+	})
+
+
+
 }
