@@ -79,6 +79,17 @@ func NewValue(val interface{}) *Value {
 	}
 }
 
+// NewValueFromJSONString parses a json string and returns a Value
+func NewValueFromJSONString(s string) (*Value, error) {
+	s = fmt.Sprintf(`{"root": %s}`, s)
+	m := make(map[string]interface{})
+	if err := json.Unmarshal([]byte(s), &m); err != nil {
+		return nil, err
+	}
+
+	return NewValue(m["root"]), nil
+}
+
 func newValue(valueType ValueType, value reflect.Value) *Value {
 	return &Value{
 		typ: valueType,
@@ -110,7 +121,7 @@ func (v Value) String() (string, error) {
 	case TypeUint:
 		return strconv.FormatUint(v.val.Uint(), 10), nil
 	case TypeFloat:
-		return strconv.FormatFloat(v.val.Float(), 'e', -1, 64), nil
+		return strconv.FormatFloat(v.val.Float(), 'f', -1, 64), nil
 	case TypeBool:
 		return strconv.FormatBool(v.val.Bool()), nil
 	case TypeString:
@@ -318,6 +329,35 @@ func (v Value) Get(path string, options ...OptionFunc) (*Value, error) {
 	}
 
 	return cur, nil
+}
+
+// Type returns the value type
+func (v Value) Type() ValueType {
+	return v.typ
+}
+
+// Range range all fields. It panics if v's Type is not TypeMap or TypeArray.
+func (v Value) Range(fn func(key string, value *Value) bool) {
+	cur := &v
+	switch cur.typ {
+	case TypeMap:
+		mdata := cur.val.Interface().(Map)
+
+		for key, value := range mdata {
+			if keepGoing := fn(key, NewValue(value)); !keepGoing {
+				return
+			}
+		}
+	case TypeArray:
+		mdata := cur.val.Interface().(Array)
+		for _, value := range mdata {
+			if keepGoing := fn("", NewValue(value)); !keepGoing {
+				return
+			}
+		}
+	default:
+		panic("Value: call of Range on " + reflect.TypeOf(cur.typ).String() + " Value")
+	}
 }
 
 //var keyPattern = regexp.MustCompile(`^[$/a-zA-Z_@0-9][/a-zA-Z0-9-_.]{0,}(\[[0-9]+\]){0,}$`)
