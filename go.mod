@@ -11,4 +11,5 @@ require (
 	github.com/swaggo/files v0.0.0-20190704085106-630677cd5c14
 	go.uber.org/zap v1.16.0
 	gopkg.in/redis.v5 v5.2.9
+	gorm.io/gorm v1.23.10
 )
